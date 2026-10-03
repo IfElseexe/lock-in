@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0d10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Lock In</title>
+<style>
+:root{--bg:#0b0d10;--card:#14181d;--line:#222831;--text:#eef1f4;--mute:#8a94a0;--acc:#c6ff3d;--acc2:#3dd6ff;--warn:#ffb347}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+body{padding:0 16px calc(84px + env(safe-area-inset-bottom));max-width:640px;margin:0 auto}
+header{padding:calc(18px + env(safe-area-inset-top)) 0 8px}
+h1{margin:0;font-size:26px;letter-spacing:-.5px}
+h1 span{color:var(--acc)}
+.sub{color:var(--mute);font-size:14px;margin-top:2px}
+.top{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;margin:12px 0}
+.ring{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;flex:none;background:conic-gradient(var(--acc) var(--p,0%),#242a32 0)}
+.ring b{width:50px;height:50px;border-radius:50%;background:var(--card);display:grid;place-items:center;font-size:15px}
+.stats{flex:1}
+.stats .big{font-size:17px;font-weight:650}
+.stats .small{color:var(--mute);font-size:13px;margin-top:2px}
+.dots{display:flex;gap:6px;margin:4px 0 14px;justify-content:space-between}
+.dot{flex:1;border:1px solid var(--line);background:var(--card);color:var(--mute);border-radius:12px;padding:8px 0 6px;font-size:11px;text-align:center;cursor:pointer}
+.dot i{display:block;height:5px;border-radius:3px;margin:6px 8px 0;background:#242a32;overflow:hidden}
+.dot i u{display:block;height:100%;background:var(--acc)}
+.dot.sel{border-color:var(--acc);color:var(--text)}
+.block{margin:18px 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:1.4px;color:var(--mute)}
+.task{background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:8px;overflow:hidden}
+.row{display:flex;gap:12px;align-items:flex-start;padding:13px 14px;cursor:pointer}
+.box{width:24px;height:24px;border-radius:8px;border:2px solid #3a424d;flex:none;display:grid;place-items:center;margin-top:1px;color:#0b0d10;font-weight:800;font-size:15px}
+.done .box{background:var(--acc);border-color:var(--acc)}
+.done .lab{color:var(--mute);text-decoration:line-through}
+.lab{flex:1;font-size:15.5px;line-height:1.35}
+.tm{color:var(--acc2);font-size:12px;font-variant-numeric:tabular-nums;margin-bottom:2px}
+.more{background:none;border:0;color:var(--mute);font-size:12px;padding:2px 0 0;cursor:pointer;text-decoration:underline}
+.det{display:none;padding:0 14px 14px 50px;color:#c3cad2;font-size:14px;line-height:1.5}
+.det.open{display:block}
+.det li{margin:3px 0}
+.det ul{margin:0;padding-left:18px}
+.det .note{color:var(--warn);margin-top:8px;font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:10px}
+.card h3{margin:0 0 6px;font-size:16px}
+.card p{margin:4px 0;color:#c3cad2;font-size:14px;line-height:1.5}
+.card a{color:var(--acc2);text-decoration:none;word-break:break-all}
+.card ul{margin:6px 0 0;padding-left:18px;color:#c3cad2;font-size:14px;line-height:1.55}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;background:#1d2530;color:var(--acc2);margin-right:6px}
+h2{font-size:20px;margin:18px 0 8px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td,th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--mute);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:1px}
+tr.today td{color:var(--acc)}
+nav{position:fixed;left:0;right:0;bottom:0;background:rgba(11,13,16,.94);backdrop-filter:blur(10px);border-top:1px solid var(--line);display:flex;padding:8px 8px calc(8px + env(safe-area-inset-bottom));max-width:640px;margin:0 auto}
+nav button{flex:1;background:none;border:0;color:var(--mute);font-size:12px;padding:8px 0;border-radius:12px;cursor:pointer}
+nav button.on{color:var(--acc);background:#171c22}
+nav button span{display:block;font-size:19px;margin-bottom:2px}
+.msg{text-align:center;color:var(--acc);font-weight:650;margin:14px 0}
+.reset{display:block;margin:20px auto 0;background:none;border:1px solid var(--line);color:var(--mute);border-radius:12px;padding:8px 14px;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Lock <span>In</span></h1>
+  <div class="sub" id="date"></div>
+</header>
+<main id="app"></main>
+<nav id="nav">
+  <button data-t="today" class="on"><span>✅</span>Today</button>
+  <button data-t="week"><span>📅</span>Week</button>
+  <button data-t="learn"><span>📚</span>Learn</button>
+  <button data-t="glow"><span>✨</span>Glow-up</button>
+</nav>
+
+<script>
+const NAMES=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const SHORT=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+const store={
+  get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},
+  del(k){try{localStorage.removeItem(k)}catch(e){}}
+};
+const dkey=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+
+/* ---------- PLAN DATA ---------- */
+const MORNING=[
+  'Vacuum hold: 5 × 20s (exhale fully, pull belly button to spine, breathe shallow)',
+  'Hollow-body hold: 3 × 30s',
+  'Reverse crunch: 3 × 15 (slow, no swinging)',
+  'Plank: 2 × 40s',
+  'Wall slides: 2 × 12 (fixes rounded shoulders so your chest and shoulders look wider)'
+];
+
+const NIGHT={
+  1:{t:'Push: chest, shoulders, triceps',m:[
+    'Push-ups: 4 × (max − 2 reps), 3 sec down',
+    'Decline push-ups (feet on a chair): 3 × 10',
+    'Pike push-ups: 3 × 8–12 (builds shoulder width = V-taper)',
+    'Lateral raises with water jugs or a loaded backpack: 3 × 15',
+    'Chair dips: 3 × 12',
+    'Diamond push-ups: 2 × max'],n:'Rest 60–90s between sets.'},
+  2:{t:'Pull: back and biceps',m:[
+    'Table rows (lie under a sturdy table, pull chest up): 4 × 10',
+    'Superman pulls: 3 × 15 (squeeze 2 sec at the top)',
+    'Backpack curls (backpack full of books): 4 × 12',
+    'Backpack bent-over rows: 3 × 12',
+    'Rear-delt Y-raises: 3 × 12',
+    'Towel isometric curl (pull against your own foot): 3 × 20s'],n:'Wide back + broad shoulders + small waist is the V-shape. Pulling is half the job.'},
+  3:{t:'Legs + core',m:[
+    'Bodyweight squats: 4 × 20',
+    'Split squats: 3 × 12 each leg',
+    'Glute bridges: 3 × 20',
+    'Calf raises: 4 × 20',
+    'Leg raises: 3 × 15',
+    'Plank: 3 × 45s'],n:'Strong legs also help overall growth and keep proportions balanced.'},
+  4:{t:'Push volume: chest + arms',m:[
+    'Wide push-ups: 4 × (max − 2)',
+    'Archer or one-arm-assisted push-ups: 3 × 6 each side',
+    'Pike push-ups: 3 × 10',
+    'Close-grip push-ups (triceps): 3 × 12',
+    'Lateral raises: 3 × 20',
+    'Slow push-ups (5 sec down): 2 × 8'],n:'Add 1–2 reps or slow the tempo each week. That is progressive overload.'},
+  5:{t:'Pull volume: back and arms',m:[
+    'Table rows: 4 × 12',
+    'Backpack hammer curls: 3 × 12',
+    'Backpack concentration curls: 3 × 10 each arm',
+    'Superman pulls: 3 × 15',
+    'Backpack shrugs: 3 × 20',
+    'Plank to push-up: 3 × 10'],n:'Add books to the backpack as it gets easy.'},
+  6:{t:'Full body + abs circuit',m:[
+    '3 rounds, 60s rest between rounds:',
+    'Push-ups × 20',
+    'Squats × 25',
+    'Table rows × 12',
+    'Leg raises × 15',
+    'Mountain climbers × 40',
+    'Bicycle crunches × 30'],n:'Finish with a 20 min walk or jog if you can.'},
+  0:{t:'Active recovery',m:[
+    '20–30 min walk or easy jog',
+    'Stretch: chest, lats, hips, hamstrings (10 min)',
+    'Review the week and take a progress photo (same lighting, same time)'],n:'Muscles grow while you rest. Sleep well tonight.'}
+};
+
+const CODE={
+  1:'Python fundamentals (variables, loops, functions, files)',
+  2:'HTTP and APIs (how the web works, REST, JSON)',
+  3:'Databases and SQL (tables, joins, indexes)',
+  4:'Backend with FastAPI or Express (build routes, auth basics)',
+  5:'AI/ML basics (what a neural net is, training, loss)',
+  6:'Build day: ship one small project feature',
+  0:'Light review: reread notes, tidy GitHub README'
+};
+const TRADE={
+  1:'Market basics: stocks, forex, crypto, spreads, leverage',
+  2:'Reading charts: candlesticks, support/resistance, trends',
+  3:'Risk management: position size, stop loss, risk per trade',
+  4:'Paper-trade review: log trades on a demo account',
+  5:'Weekly journal: what worked, what did not, rules for next week',
+  6:'Backtest an idea or read a trading book chapter',
+  0:'Rest. 10 min review of the week’s notes'
+};
+
+function tasksFor(d){
+  const n=NIGHT[d];
+  return [
+    {id:'wake',t:'06:00',b:'Morning',l:'Wake up, drink 500ml water, make your bed'},
+    {id:'am',t:'06:10',b:'Morning',l:'Morning core + posture (15 min)',m:MORNING,n:'Abs show when body fat is low. Training them is only half the job. Food matters most.'},
+    {id:'skinam',t:'06:35',b:'Morning',l:'Brush teeth, wash face, moisturizer + sunscreen'},
+    {id:'german',t:'07:00',b:'Morning',l:'Duolingo German: today’s lesson (keep the streak)',m:['15 min minimum','Say each sentence out loud','Write 3 new words in a notes app and use them in a sentence']},
+    {id:'code1',t:'09:00',b:'Day',l:'Code study block (90 min): '+CODE[d],m:['Read or watch one lesson (see Learn tab)','Type out the code yourself on your phone (Termux, Pydroid 3, or GitHub Codespaces in browser)','Write 3 lines of notes: what you learned, what confused you'],n:'Phone-only is fine. Consistency beats gear.'},
+    {id:'food1',t:'13:00',b:'Day',l:'Protein-rich lunch (eggs, fish, chicken, beans) + water'},
+    {id:'trade',t:'14:00',b:'Day',l:'Trading study (45 min): '+TRADE[d],m:['Use TradingView or a demo account only','No real money until you have 3 months of consistent paper results'],n:'Most retail traders lose money. Treat this as a skill to study, not a shortcut.'},
+    {id:'code2',t:'16:00',b:'Day',l:'Build or practice (60 min): apply what you studied'},
+    {id:'read',t:'17:30',b:'Day',l:'Read 10 pages (tech, trading, or self-improvement)'},
+    {id:'food2',t:'18:30',b:'Evening',l:'Dinner with protein + vegetables, no sugary drinks'},
+    {id:'pm',t:'20:00',b:'Evening',l:'Night workout: '+n.t+' (35 min)',m:n.m,n:n.n},
+    {id:'water',t:'20:45',b:'Evening',l:'Hit your water goal today (about 2.5–3 L)'},
+    {id:'skinpm',t:'21:15',b:'Evening',l:'Shower, face wash, moisturizer, groom (trim beard/nails)'},
+    {id:'plan',t:'21:30',b:'Evening',l:'Review the day + plan tomorrow (5 min)'},
+    {id:'sleep',t:'22:30',b:'Evening',l:'Phone down, lights out (7–8 hours of sleep)'}
+  ];
+}
+
+/* ---------- STATE ---------- */
+let tab='today';
+let sel=new Date();
+const today=new Date();
+
+const getDone=dt=>store.get('lockin:'+dkey(dt))||{};
+const setDone=(dt,o)=>store.set('lockin:'+dkey(dt),o);
+const pct=dt=>{
+  const t=tasksFor(dt.getDay());
+  const d=getDone(dt);
+  return Math.round(100*t.filter(x=>d[x.id]).length/t.length);
+};
+function streak(){
+  let s=0;
+  const d=new Date(today);
+  if(pct(d)<80)d.setDate(d.getDate()-1);
+  while(pct(d)>=80){s++;d.setDate(d.getDate()-1);if(s>999)break}
+  return s;
+}
+
+/* ---------- RENDER ---------- */
+const app=document.getElementById('app');
+document.getElementById('date').textContent=NAMES[today.getDay()]+', '+today.toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'});
+
+function renderToday(){
+  const d=sel.getDay();
+  const tasks=tasksFor(d);
+  const done=getDone(sel);
+  const n=tasks.filter(t=>done[t.id]).length;
+  const p=Math.round(100*n/tasks.length);
+  let h='<div class="top"><div class="ring" style="--p:'+p+'%"><b>'+p+'%</b></div><div class="stats"><div class="big">'+NAMES[d]+' · '+NIGHT[d].t+'</div><div class="small">'+n+' of '+tasks.length+' done · 🔥 '+streak()+'-day streak (80%+ counts)</div></div></div>';
+  h+='<div class="dots">';
+  for(let i=6;i>=0;i--){
+    const dt=new Date(today);dt.setDate(dt.getDate()-i);
+    h+='<div class="dot'+(dkey(dt)===dkey(sel)?' sel':'')+'" data-d="'+dkey(dt)+'">'+SHORT[dt.getDay()]+'<i><u style="width:'+pct(dt)+'%"></u></i></div>';
+  }
+  h+='</div>';
+  if(p===100)h+='<div class="msg">Perfect day. Locked in. 🔒</div>';
+  let last='';
+  tasks.forEach(t=>{
+    if(t.b!==last){h+='<div class="block">'+t.b+'</div>';last=t.b}
+    const has=t.m||t.n;
+    h+='<div class="task'+(done[t.id]?' done':'')+'" data-id="'+t.id+'">'+
+      '<div class="row" data-toggle="'+t.id+'"><div class="box">'+(done[t.id]?'✓':'')+'</div><div class="lab"><div class="tm">'+t.t+'</div>'+t.l+(has?'<br><button class="more" data-more="'+t.id+'">details</button>':'')+'</div></div>'+
+      (has?'<div class="det" id="det-'+t.id+'">'+(t.m?'<ul>'+t.m.map(x=>'<li>'+x+'</li>').join('')+'</ul>':'')+(t.n?'<div class="note">'+t.n+'</div>':'')+'</div>':'')+
+      '</div>';
+  });
+  h+='<button class="reset" id="reset">Reset this day</button>';
+  app.innerHTML=h;
+}
+
+function renderWeek(){
+  let h='<h2>Weekly plan</h2><div class="card"><table><tr><th>Day</th><th>Workout</th><th>Code</th><th>Trading</th></tr>';
+  [1,2,3,4,5,6,0].forEach(d=>{
+    h+='<tr'+(d===today.getDay()?' class="today"':'')+'><td>'+SHORT[d]+'</td><td>'+NIGHT[d].t+'</td><td>'+CODE[d]+'</td><td>'+TRADE[d]+'</td></tr>';
+  });
+  h+='</table></div>';
+  h+='<div class="card"><h3>Every day</h3><ul><li>Morning: core + posture (15 min)</li><li>Duolingo German (15 min)</li><li>Coding: 90 + 60 min</li><li>Trading study: 45 min</li><li>Night workout: 35 min</li><li>Sleep 7–8 hours</li></ul></div>';
+  h+='<div class="card"><h3>Abs + V-taper rules</h3><ul><li>Abs appear when body fat drops. Eat protein at every meal and keep sugar and junk low.</li><li>Wider shoulders + wider back + smaller waist makes the V. Do not skip pulling or lateral raises.</li><li>Progress every week: more reps, slower reps, or a heavier backpack.</li><li>Take a photo every Sunday. You will not notice change daily.</li></ul></div>';
+  h+='<div class="card"><h3>Protein foods (Nigeria-friendly)</h3><p>Eggs, beans, fish (titus, mackerel), chicken, groundnuts, soya, milk or yogurt, moi-moi. Aim for protein in every meal.</p></div>';
+  app.innerHTML=h;
+}
+
+function renderLearn(){
+  const L=(t,u)=>'<a href="'+u+'" target="_blank" rel="noopener">'+t+'</a>';
+  let h='<h2>Backend</h2>';
+  h+='<div class="card"><h3>Start here</h3><ul>'+
+   '<li>'+L('roadmap.sh/backend','https://roadmap.sh/backend')+': the map of what to learn</li>'+
+   '<li>'+L('CS50 (Harvard)','https://cs50.harvard.edu')+': free, best for fundamentals</li>'+
+   '<li>'+L('freeCodeCamp','https://www.freecodecamp.org')+': Python, APIs, databases</li>'+
+   '<li>'+L('MDN Web Docs: HTTP','https://developer.mozilla.org/en-US/docs/Web/HTTP')+'</li>'+
+   '<li>'+L('Python docs tutorial','https://docs.python.org/3/tutorial/')+'</li>'+
+   '<li>'+L('FastAPI tutorial','https://fastapi.tiangolo.com/tutorial/')+'</li>'+
+   '<li>'+L('SQLBolt','https://sqlbolt.com')+': interactive SQL</li>'+
+   '</ul></div>';
+  h+='<h2>AI</h2><div class="card"><h3>Go from zero to understanding models</h3><ul>'+
+   '<li>'+L('3Blue1Brown: Neural Networks','https://www.3blue1brown.com/topics/neural-networks')+': the intuition</li>'+
+   '<li>'+L('Karpathy: Neural Networks, Zero to Hero','https://karpathy.ai/zero-to-hero.html')+': build from scratch</li>'+
+   '<li>'+L('fast.ai course','https://course.fast.ai')+'</li>'+
+   '<li>'+L('Hugging Face learn','https://huggingface.co/learn')+'</li>'+
+   '<li>'+L('Khan Academy: linear algebra, calculus, statistics','https://www.khanacademy.org/math')+'</li>'+
+   '</ul></div>';
+  h+='<div class="card"><h3>Phone coding tools</h3><ul><li>Termux (Android terminal)</li><li>Pydroid 3 (Python on Android)</li><li>GitHub Codespaces in your browser</li><li>Replit</li></ul><p>Keep your GitHub active. Push code daily; it becomes your portfolio.</p></div>';
+  h+='<h2>German</h2><div class="card"><h3>Beyond Duolingo</h3><ul><li>Duolingo daily (never break the streak)</li><li>'+L('Deutsche Welle: Nicos Weg','https://learngerman.dw.com')+': free structured course</li><li>Learn the 100 most common words first</li><li>Speak out loud to yourself every day</li></ul></div>';
+  h+='<h2>Trading</h2><div class="card"><h3>Learn before you risk anything</h3><ul>'+
+   '<li>'+L('BabyPips: School of Pipsology','https://www.babypips.com/learn/forex')+'</li>'+
+   '<li>'+L('Investopedia','https://www.investopedia.com')+'</li>'+
+   '<li>'+L('TradingView (paper trading)','https://www.tradingview.com')+'</li>'+
+   '<li>Books: Trading in the Zone, Market Wizards</li>'+
+   '</ul><p style="color:#ffb347">Most beginners lose money. Paper trade for at least 3 months, never risk money you cannot afford to lose, and avoid anyone promising guaranteed returns. Coding skill also lets you backtest ideas, which helps a lot.</p></div>';
+  app.innerHTML=h;
+}
+
+function renderGlow(){
+  const C=(t,items)=>'<div class="card"><h3>'+t+'</h3><ul>'+items.map(x=>'<li>'+x+'</li>').join('')+'</ul></div>';
+  let h='<h2>Glow-up</h2>';
+  h+=C('Skin',['Wash face morning and night with a gentle cleanser','Moisturizer every day','Sunscreen in the morning (SPF 30+)','Drink water, sleep enough, and avoid picking at spots']);
+  h+=C('Hair and grooming',['Get a clean haircut that suits your face shape every 2–3 weeks','Keep beard neat or clean shaven, no half-done look','Trim nails, clean ears and nose','Brush twice daily, floss, tongue scraper for fresh breath']);
+  h+=C('Style',['Wear clothes that actually fit (shoulders and length matter most)','Keep a few plain, well-fitted pieces rather than many loud ones','Clean shoes make a big difference','Fragrance: 1–2 sprays, applied after shower']);
+  h+=C('Posture + presence',['Shoulders back, chin level, chest open','Wall slides every morning (in your routine)','Eye contact, slow calm voice, real smile','Walk with purpose and do not rush your words']);
+  h+=C('Mind + habits',['7–8 hours of sleep, because it shows on your face','Cut sugar, junk food, and too much alcohol','Be genuinely curious about people and ask good questions','Keep promises to yourself, because discipline is attractive']);
+  h+='<div class="card"><h3>Results timeline</h3><p>Posture and grooming: noticeable within 1–2 weeks. Skin: 4–8 weeks. Visible muscle change: 8–12 weeks of consistency. Abs: depends on body fat, so keep training and eating right.</p></div>';
+  app.innerHTML=h;
+}
+
+function render(){
+  if(tab==='today')renderToday();
+  else if(tab==='week')renderWeek();
+  else if(tab==='learn')renderLearn();
+  else renderGlow();
+  window.scrollTo(0,0);
+}
+
+/* ---------- EVENTS ---------- */
+app.addEventListener('click',e=>{
+  const more=e.target.closest('[data-more]');
+  if(more){
+    e.stopPropagation();
+    const el=document.getElementById('det-'+more.dataset.more);
+    if(el)el.classList.toggle('open');
+    return;
+  }
+  const tg=e.target.closest('[data-toggle]');
+  if(tg){
+    const id=tg.dataset.toggle;
+    const d=getDone(sel);
+    d[id]=!d[id];
+    setDone(sel,d);
+    const y=window.scrollY;
+    const open=[...document.querySelectorAll('.det.open')].map(x=>x.id);
+    renderToday();
+    open.forEach(i=>{const el=document.getElementById(i);if(el)el.classList.add('open')});
+    window.scrollTo(0,y);
+    return;
+  }
+  const dot=e.target.closest('[data-d]');
+  if(dot){
+    const [y,m,dd]=dot.dataset.d.split('-').map(Number);
+    sel=new Date(y,m-1,dd);
+    renderToday();
+    return;
+  }
+  if(e.target.id==='reset'){
+    if(confirm('Clear all checks for this day?')){store.del('lockin:'+dkey(sel));renderToday()}
+  }
+});
+
+document.getElementById('nav').addEventListener('click',e=>{
+  const b=e.target.closest('button');
+  if(!b)return;
+  tab=b.dataset.t;
+  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
+  render();
+});
+
+render();
+</script>
+</body>
+</html>
