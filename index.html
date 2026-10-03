@@ -15,6 +15,7 @@ header{padding:calc(18px + env(safe-area-inset-top)) 0 8px}
 h1{margin:0;font-size:26px;letter-spacing:-.5px}
 h1 span{color:var(--acc)}
 .sub{color:var(--mute);font-size:14px;margin-top:2px}
+.syncbtn{background:#171c22;border:1px solid var(--line);color:var(--acc2);border-radius:99px;padding:5px 12px;font-size:12px;margin-top:8px;cursor:pointer}
 .top{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;margin:12px 0}
 .ring{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;flex:none;background:conic-gradient(var(--acc) var(--p,0%),#242a32 0)}
 .ring b{width:50px;height:50px;border-radius:50%;background:var(--card);display:grid;place-items:center;font-size:15px}
@@ -63,6 +64,7 @@ nav button span{display:block;font-size:19px;margin-bottom:2px}
 <header>
   <h1>Lock <span>In</span></h1>
   <div class="sub" id="date"></div>
+  <button class="syncbtn" id="sync">☁️ Set up sync</button>
 </header>
 <main id="app"></main>
 <nav id="nav">
@@ -188,7 +190,11 @@ let sel=new Date();
 const today=new Date();
 
 const getDone=dt=>store.get('lockin:'+dkey(dt))||{};
-const setDone=(dt,o)=>store.set('lockin:'+dkey(dt),o);
+const setDone=(dt,o)=>{
+  store.set('lockin:'+dkey(dt),o);
+  store.set('lockin:t:'+dkey(dt),Date.now());
+  queuePush(dt);
+};
 const pct=dt=>{
   const t=tasksFor(dt.getDay());
   const d=getDone(dt);
@@ -325,7 +331,7 @@ app.addEventListener('click',e=>{
     return;
   }
   if(e.target.id==='reset'){
-    if(confirm('Clear all checks for this day?')){store.del('lockin:'+dkey(sel));renderToday()}
+    if(confirm('Clear all checks for this day?')){setDone(sel,{});renderToday()}
   }
 });
 
@@ -337,7 +343,78 @@ document.getElementById('nav').addEventListener('click',e=>{
   render();
 });
 
+/* ---------- CLOUD SYNC ---------- */
+const SK='lockin:synckey';
+const syncBtn=document.getElementById('sync');
+const getKey=()=>{try{return localStorage.getItem(SK)||''}catch(e){return ''}};
+const timers={};
+function setSync(s){
+  const m={off:'☁️ Set up sync',syncing:'☁️ Syncing…',ok:'☁️ Synced',err:'☁️ Offline · saved on this device'};
+  syncBtn.textContent=m[s]||m.off;
+}
+async function api(method,body){
+  const r=await fetch('/api/sync',{method,headers:{'content-type':'application/json','x-sync-key':getKey()},body:body?JSON.stringify(body):undefined});
+  if(!r.ok)throw new Error('http '+r.status);
+  return r.json();
+}
+function queuePush(dt){
+  if(!getKey())return;
+  const k=dkey(dt);
+  setSync('syncing');
+  clearTimeout(timers[k]);
+  timers[k]=setTimeout(async()=>{
+    try{
+      await api('PUT',{day:k,done:store.get('lockin:'+k)||{},t:store.get('lockin:t:'+k)||Date.now()});
+      setSync('ok');
+    }catch(e){setSync('err')}
+  },400);
+}
+async function pull(){
+  if(!getKey()){setSync('off');return}
+  setSync('syncing');
+  try{
+    const {days}=await api('GET');
+    let changed=false;
+    for(const k in days){
+      const v=days[k]||{};
+      const lt=store.get('lockin:t:'+k)||0;
+      if((v.t||0)>lt){store.set('lockin:'+k,v.d||{});store.set('lockin:t:'+k,v.t);changed=true}
+    }
+    const local=[];
+    try{
+      for(let i=0;i<localStorage.length;i++){
+        const m=/^lockin:(\d{4}-\d{2}-\d{2})$/.exec(localStorage.key(i)||'');
+        if(m)local.push(m[1]);
+      }
+    }catch(e){}
+    for(const k of local){
+      const lt=store.get('lockin:t:'+k)||1;
+      const st=(days[k]&&days[k].t)||0;
+      if(lt>st)await api('PUT',{day:k,done:store.get('lockin:'+k)||{},t:lt});
+    }
+    setSync('ok');
+    if(changed)render();
+  }catch(e){setSync('err')}
+}
+syncBtn.addEventListener('click',()=>{
+  if(getKey()){
+    if(confirm('Cloud sync is ON for this device. Turn it off here? (Your saved data stays in the cloud.)')){
+      try{localStorage.removeItem(SK)}catch(e){}
+      setSync('off');
+    }
+    return;
+  }
+  const k=prompt('Pick a sync passphrase (8+ characters). Use the exact same one on every device and keep it private.');
+  if(!k)return;
+  if(k.trim().length<8){alert('Use at least 8 characters.');return}
+  try{localStorage.setItem(SK,k.trim())}catch(e){alert('Could not save on this browser.');return}
+  pull();
+});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)pull()});
+setSync(getKey()?'syncing':'off');
+
 render();
+pull();
 </script>
 </body>
 </html>
